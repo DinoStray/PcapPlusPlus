@@ -127,7 +127,7 @@ TcpReassembly::ReassemblyStatus TcpReassembly::reassemblePacket(Packet& tcpData)
 	TcpReassemblyData* tcpReassemblyData = NULL;
 
 	// calculate flow key for this packet
-	uint32_t flowKey = hash5Tuple(&tcpData);
+	uint64_t flowKey = hash64_5Tuple(&tcpData);
 
 	// find the connection in the connection map
 	ConnectionList::iterator iter = m_ConnectionList.find(flowKey);
@@ -156,7 +156,7 @@ TcpReassembly::ReassemblyStatus TcpReassembly::reassemblePacket(Packet& tcpData)
 		// if this packet belongs to a connection that was already closed (for example: data packet that comes after FIN), ignore it.
 		if (iter->second.closed)
 		{
-			LOG_DEBUG("Ignoring packet of already closed flow [0x%X]", flowKey);
+			LOG_DEBUG("Ignoring packet of already closed flow [0x%llX]", flowKey);
 			return Ignore_PacketOfClosedFlow;
 		}
 
@@ -451,7 +451,7 @@ static std::string prepareMissingDataMessage(uint32_t missingDataLen)
 	return missingDataTextStream.str();
 }
 
-void TcpReassembly::handleFinOrRst(TcpReassemblyData* tcpReassemblyData, int8_t sideIndex, uint32_t flowKey)
+void TcpReassembly::handleFinOrRst(TcpReassemblyData* tcpReassemblyData, int8_t sideIndex, uint64_t flowKey)
 {
 	// if this side already saw a FIN or RST packet, do nothing and return
 	if (tcpReassemblyData->twoSides[sideIndex].gotFinOrRst)
@@ -644,17 +644,17 @@ void TcpReassembly::checkOutOfOrderFragments(TcpReassemblyData* tcpReassemblyDat
 	} while (foundSomething);
 }
 
-void TcpReassembly::closeConnection(uint32_t flowKey)
+void TcpReassembly::closeConnection(uint64_t flowKey)
 {
 	closeConnectionInternal(flowKey, TcpReassembly::TcpReassemblyConnectionClosedManually);
 }
 
-void TcpReassembly::closeConnectionInternal(uint32_t flowKey, ConnectionEndReason reason)
+void TcpReassembly::closeConnectionInternal(uint64_t flowKey, ConnectionEndReason reason)
 {
 	ConnectionList::iterator iter = m_ConnectionList.find(flowKey);
 	if (iter == m_ConnectionList.end())
 	{
-		LOG_ERROR("Cannot close flow with key 0x%X: cannot find flow", flowKey);
+		LOG_ERROR("Cannot close flow with key 0x%%llX: cannot find flow", flowKey);
 		return;
 	}
 
@@ -663,7 +663,7 @@ void TcpReassembly::closeConnectionInternal(uint32_t flowKey, ConnectionEndReaso
 	if (tcpReassemblyData.closed) // the connection is already closed
 		return;
 
-	LOG_DEBUG("Closing connection with flow key 0x%X", flowKey);
+	LOG_DEBUG("Closing connection with flow key 0x%%llX", flowKey);
 
 	LOG_DEBUG("Calling checkOutOfOrderFragments on side 0");
 	checkOutOfOrderFragments(&tcpReassemblyData, 0, true);
@@ -692,8 +692,8 @@ void TcpReassembly::closeAllConnections()
 		if (tcpReassemblyData.closed) // the connection is already closed, skip it
 			continue;
 
-		uint32_t flowKey = tcpReassemblyData.connData.flowKey;
-		LOG_DEBUG("Closing connection with flow key 0x%X", flowKey);
+		uint64_t flowKey = tcpReassemblyData.connData.flowKey;
+		LOG_DEBUG("Closing connection with flow key 0x%llX", flowKey);
 
 		LOG_DEBUG("Calling checkOutOfOrderFragments on side 0");
 		checkOutOfOrderFragments(&tcpReassemblyData, 0, true);
@@ -707,7 +707,7 @@ void TcpReassembly::closeAllConnections()
 		tcpReassemblyData.closed = true; // mark the connection as closed
 		insertIntoCleanupList(flowKey);
 
-		LOG_DEBUG("Connection with flow key 0x%X is closed", flowKey);
+		LOG_DEBUG("Connection with flow key 0x%llX is closed", flowKey);
 	}
 }
 
@@ -720,7 +720,7 @@ int TcpReassembly::isConnectionOpen(const ConnectionData& connection) const
 	return -1;
 }
 
-void TcpReassembly::insertIntoCleanupList(uint32_t flowKey)
+void TcpReassembly::insertIntoCleanupList(uint64_t flowKey)
 {
 	// m_CleanupList is a map with key of type time_t (expiration time). The mapped type is a list that stores the flow keys to be cleared in certain point of time.
 	// m_CleanupList.insert inserts an empty list if the container does not already contain an element with an equivalent key,

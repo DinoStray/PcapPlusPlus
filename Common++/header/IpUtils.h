@@ -125,5 +125,9 @@ namespace pcpp
 	 */
 	uint32_t fnv_hash(uint8_t* buffer, size_t bufSize);
 
+	uint64_t fnv_hash_64(ScalarBuffer<uint8_t> vec[], size_t vecSize);
+
+	uint64_t fnv_hash_64(uint8_t* buffer, size_t bufSize);
+
 } // namespace pcpp
 #endif

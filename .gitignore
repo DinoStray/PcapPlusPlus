@@ -72,6 +72,9 @@ mk/vs2015/**
 mk/vs2017/**
 mk/vs2019/**
 
+#Clion generated files
+.idea
+
 #Tutorial outputs
 Examples/Tutorials/**/Makefile
 Examples/Tutorials/**/*.exe
